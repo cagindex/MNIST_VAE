@@ -7,23 +7,31 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(1, 6, 3, padding=1),
-            nn.ReLU(True),
-            nn.MaxPool2d(2, stride=2), # 6 @ 14x14
-            nn.Conv2d(6, 16, 3, padding=1), # 16 @ 14x14
-            nn.ReLU(True),
-            nn.MaxPool2d(2, stride=2), # 16 @ 7x7
             nn.Flatten(),
-            nn.Linear(16*7*7, 512), # 512
+            nn.Linear(784, 512),
+            nn.ReLU(True),
+            nn.Linear(512, 256),
+            nn.ReLU(True),
+            nn.Linear(256, 64),
+            nn.ReLU(True),
+            nn.Linear(64, 32)
         ) 
 
         self.decoder = nn.Sequential(
+            nn.Linear(16, 64),
+            nn.ReLU(True),
+            nn.Linear(64, 256),
+            nn.ReLU(True),
             nn.Linear(256, 512),
             nn.ReLU(True),
-            nn.Linear(512, 1 * 28 * 28), # 1 * 28 * 28
+            nn.Linear(512, 784),
             nn.Unflatten(1, (1, 28, 28)),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
+    
+    def reparameterize(self, mu, logvar):
+        z = torch.normal(0, 1, size=logvar.size(), requires_grad=False).to(device)
+        return mu + (0.5*logvar).exp() * z
     
     def encode(self, x):
         return self.encoder(x)
@@ -32,10 +40,10 @@ class VAE(nn.Module):
         return self.decoder(z)
 
     def forward(self, x):
-        latent_vector = self.encode(x)
         # 必须取logvar，如果取sigma的话klloss中取 log 后可能出现nan
+        latent_vector = self.encode(x)
         mu, logvar = latent_vector.chunk(2, dim=1) 
-        sample = torch.normal(0, 1, size=logvar.size(), requires_grad=False).to(device)
-        z = (mu + (0.5*logvar).exp() * sample)
+        z = self.reparameterize(mu, logvar)
         gen_img = self.decode(z)
         return gen_img, mu, logvar
+

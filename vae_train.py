@@ -26,32 +26,32 @@ test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
 model = VAE().to(device)
 optim = torch.optim.Adam(model.parameters(), lr=lr)
-# recon_loss_fn = torch.nn.MSELoss()
-recon_loss_fn = lambda recon_x, x: F.binary_cross_entropy(recon_x, x, size_average=False) / x.shape[0]
-kl_loss_fn = lambda mu, logvar: -0.5 * torch.sum(1 + logvar - mu * mu - logvar.exp()) / mu.shape[0]
-recon_loss_record = []
-kl_loss_record = []
+# recon_loss_fn = torch.nn.MSELoss(reduce='sum')
+recon_loss_fn = F.binary_cross_entropy()
+kl_loss_fn = lambda mu, logvar: -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+recon_loss_record, kl_loss_record = [], []
 for epoch in range(epoches):
-    recon_batch_loss = 0
-    kl_batch_loss = 0
-    for batch_idx, (images, _) in enumerate(train_loader):
+    recon_loss_batch, kl_loss_batch = 0, 0
+    for i, (images, _) in enumerate(train_loader):
         images = images.to(device)
-        
-        optim.zero_grad()
-        gen_img, mu, logvar = model(images)
-        recon_loss = recon_loss_fn(gen_img, images)
+
+        gen_imgs, mu, logvar = model(images)
+        recon_loss = recon_loss_fn(gen_imgs, images)
         kl_loss = kl_loss_fn(mu, logvar)
-        loss = recon_loss + kl_loss
+        loss = recon_loss + kl_loss 
+
+        optim.zero_grad()
         loss.backward()
         optim.step()
 
-        recon_batch_loss += recon_loss.item()
-        kl_batch_loss += kl_loss.item()
-        if (batch_idx+1) % 100 == 0:
-            print(f"[Epoch {epoch+1}][Batch idx {batch_idx+1}], Avg Recon Loss: {recon_batch_loss/100:.4f}, Avg KL Loss: {kl_batch_loss/100:.4f}")
-            recon_loss_record.append(recon_batch_loss/100)
-            kl_loss_record.append(kl_batch_loss/100)
-            recon_batch_loss, kl_batch_loss = 0, 0
+        recon_loss_batch += recon_loss.item()
+        kl_loss_batch += kl_loss.item()
+        if (i + 1) % 100 == 0:
+            print(f"Epoch [{epoch+1}/{epoches}], Batch [{i+1}/{len(train_loader)}], Recon Loss: {recon_loss_batch/100:.4f}, KL Loss: {kl_loss_batch/100:.4f}")
+            recon_loss_record.append(recon_loss_batch/100)
+            kl_loss_record.append(kl_loss_batch/100)
+            recon_loss_batch, kl_loss_batch = 0, 0
+
 
 torch.save(model.state_dict(), vae_path)
 '''
