@@ -53,8 +53,8 @@ def latent_space_visualization(latent_space_data = None):
     plt.show()
 
 
-def latent_space_generation(latent_vector):
-    gen_img = model.decode(torch.tensor(latent_vector).reshape(1, -1).to(device))
+def latent_space_generation(mu, logvar):
+    gen_img = model.decode(torch.tensor(mu).reshape(1, -1).to(device), torch.tensor(logvar).reshape(1, -1).to(device))
     plt.imshow(gen_img.detach().cpu().numpy().squeeze(), cmap='gray')
     plt.title('Generated Image')
     plt.show()

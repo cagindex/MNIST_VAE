@@ -26,8 +26,8 @@ test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
 model = VAE().to(device)
 optim = torch.optim.Adam(model.parameters(), lr=lr)
-# recon_loss_fn = torch.nn.MSELoss()
-recon_loss_fn = lambda recon_x, x: F.binary_cross_entropy(recon_x, x, size_average=False) / x.shape[0]
+recon_loss_fn = torch.nn.MSELoss(size_average=False)
+# recon_loss_fn = lambda recon_x, x: F.binary_cross_entropy(recon_x, x, size_average=False) / x.shape[0]
 kl_loss_fn = lambda mu, logvar: -0.5 * torch.sum(1 + logvar - mu * mu - logvar.exp()) / mu.shape[0]
 recon_loss_record = []
 kl_loss_record = []
