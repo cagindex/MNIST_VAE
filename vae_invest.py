@@ -38,7 +38,8 @@ def latent_space_data_collect():
     with torch.no_grad():
         for img, label in tqdm(train_data):
             latent_vector = model.encode(img.unsqueeze(0).to(device))
-            ret_value[label].append(latent_vector.detach().cpu().numpy().flatten())
+            mu, logvar = latent_vector.chunk(2, dim=1) 
+            ret_value[label].append(mu.detach().cpu().numpy().flatten())
     return ret_value
 
 

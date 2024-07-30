@@ -14,11 +14,15 @@ class VAE(nn.Module):
             nn.ReLU(True),
             nn.Linear(256, 64),
             nn.ReLU(True),
-            nn.Linear(64, 32)
+            nn.Linear(64, 32),
+            nn.ReLU(True),
+            nn.Linear(32, 4),
         ) 
 
         self.decoder = nn.Sequential(
-            nn.Linear(16, 64),
+            nn.Linear(2, 32),
+            nn.ReLU(True),
+            nn.Linear(32, 64),
             nn.ReLU(True),
             nn.Linear(64, 256),
             nn.ReLU(True),
