@@ -13,12 +13,22 @@ class VAE(nn.Module):
             nn.Conv2d(6, 16, 3, padding=1), # 16 @ 14x14
             nn.ReLU(True),
             nn.MaxPool2d(2, stride=2), # 16 @ 7x7
+            nn.Conv2d(16, 32, 5), # 32 @ 3x3
+            nn.ReLU(True),
             nn.Flatten(),
-            nn.Linear(16*7*7, 512), # 512
+            nn.Linear(32*3*3, 126), # 512
+            nn.ReLU(True),
+            nn.Linear(126, 32),
+            nn.ReLU(True),
+            nn.Linear(32, 4)
         ) 
 
         self.decoder = nn.Sequential(
-            nn.Linear(256, 512),
+            nn.Linear(2, 32),
+            nn.ReLU(True),
+            nn.Linear(32, 126),
+            nn.ReLU(True),
+            nn.Linear(126, 512),
             nn.ReLU(True),
             nn.Linear(512, 1 * 28 * 28), # 1 * 28 * 28
             nn.Unflatten(1, (1, 28, 28)),
