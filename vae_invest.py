@@ -4,11 +4,11 @@ import numpy as np
 from sklearn.decomposition import PCA
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from model import VAE
+from model import CVAE
 from utils import vae_path, MNIST_Dataset, device
 from IPython import embed
 
-model = VAE().to(device)
+model = CVAE().to(device)
 model.load_state_dict(torch.load(vae_path, weights_only=True))
 
 
@@ -19,9 +19,9 @@ def sample_image(idx):
     """采样并展示对比原图和生成图
     :param int idx: 训练集中的图像下标
     """
-    img, _ = train_data[idx]
+    img, label = train_data[idx]
     with torch.no_grad():
-        gen_img, _, _ = model(img.unsqueeze(0).to(device))
+        gen_img, _, _ = model(img.unsqueeze(0).to(device), torch.tensor([label]).to(device))
     
     plt.subplot(1, 2, 1)
     plt.imshow(img.numpy().squeeze(), cmap='gray')
@@ -37,7 +37,7 @@ def latent_space_data_collect():
     ret_value = { i : [] for i in range(10)}
     with torch.no_grad():
         for img, label in tqdm(train_data):
-            latent_vector = model.encode(img.unsqueeze(0).to(device))
+            latent_vector = model.encode(img.unsqueeze(0).to(device), torch.tensor([label]).to(device))
             mu, logvar = latent_vector.chunk(2, dim=1) 
             ret_value[label].append(mu.detach().cpu().numpy().flatten())
     return ret_value
@@ -54,8 +54,9 @@ def latent_space_visualization(latent_space_data = None):
     plt.show()
 
 
-def latent_space_generation(latent_vector):
-    gen_img = model.decode(torch.tensor(latent_vector).reshape(1, -1).to(device))
+def latent_space_generation(latent_vector, label):
+    latent_vector = torch.cat([latent_vector.reshape(1, -1), torch.tensor(label).reshape(1, -1)], dim=1)
+    gen_img = model.decode(torch.tensor(latent_vector).to(device))
     plt.imshow(gen_img.detach().cpu().numpy().squeeze(), cmap='gray')
     plt.title('Generated Image')
     plt.show()

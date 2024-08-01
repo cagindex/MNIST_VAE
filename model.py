@@ -36,7 +36,8 @@ class CVAE(nn.Module):
         z = torch.normal(0, 1, size=logvar.size(), requires_grad=False).to(device)
         return mu + (0.5*logvar).exp() * z
     
-    def encode(self, x):
+    def encode(self, x, label):
+        x = torch.cat([torch.flatten(x, start_dim=1), torch.reshape(label, (-1, 1))], dim=1)
         return self.encoder(x)
     
     def decode(self, z):
@@ -45,8 +46,7 @@ class CVAE(nn.Module):
     # x shape: (batch_size, 1, 28, 28)
     # label shape: (batch_size, )
     def forward(self, x, label):
-        x = torch.cat([torch.flatten(x, start_dim=1), torch.reshape(label, (-1, 1))], dim=1)
-        latent_vector = self.encode(x)
+        latent_vector = self.encode(x, label)
         # 必须取logvar，如果取sigma的话klloss中取 log 后可能出现nan
         mu, logvar = latent_vector.chunk(2, dim=1) 
         z = self.reparameterize(mu, logvar) # z shape: (batch_size, 2)
