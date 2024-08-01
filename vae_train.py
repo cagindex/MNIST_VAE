@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from model import VAE
+from model import CVAE
 from utils import MNIST_Dataset, seed_everything, vae_path, device
 
 import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
 
-model = VAE().to(device)
+model = CVAE().to(device)
 optim = torch.optim.Adam(model.parameters(), lr=lr)
 # recon_loss_fn = torch.nn.MSELoss(reduce='sum')
 recon_loss_fn = lambda recon_x, x: F.binary_cross_entropy(recon_x, x, reduction='sum') 
@@ -34,10 +34,10 @@ kl_loss_fn = lambda mu, logvar: -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar
 recon_loss_record, kl_loss_record = [], []
 for epoch in range(epoches):
     recon_loss_batch, kl_loss_batch = 0, 0
-    for i, (images, _) in enumerate(train_loader):
-        images = images.to(device)
+    for i, (images, labels) in enumerate(train_loader):
+        images, labels = images.to(device), labels.to(device)
 
-        gen_imgs, mu, logvar = model(images)
+        gen_imgs, mu, logvar = model(images, labels)
         recon_loss = recon_loss_fn(gen_imgs, images)
         kl_loss = kl_loss_fn(mu, logvar)
         loss = recon_loss + alpha * kl_loss 
@@ -58,9 +58,9 @@ for epoch in range(epoches):
     model.eval()
     with torch.no_grad():
         test_loss = 0
-        for i, (images, _) in enumerate(test_loader):
-            images = images.to(device)
-            gen_imgs, mu, logvar = model(images)
+        for i, (images, labels) in enumerate(test_loader):
+            images, labels = images.to(device), labels.to(device)
+            gen_imgs, mu, logvar = model(images, labels)
             recon_loss = recon_loss_fn(gen_imgs, images)
             kl_loss = kl_loss_fn(mu, logvar)
             test_loss += (recon_loss + alpha * kl_loss).item()

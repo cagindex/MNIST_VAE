@@ -3,12 +3,11 @@ import torch.nn as nn
 from utils import device
 
 
-class VAE(nn.Module):
+class CVAE(nn.Module):
     def __init__(self):
-        super(VAE, self).__init__()
+        super(CVAE, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(784, 512),
+            nn.Linear(785, 512),
             nn.ReLU(True),
             nn.Linear(512, 256),
             nn.ReLU(True),
@@ -20,7 +19,7 @@ class VAE(nn.Module):
         ) 
 
         self.decoder = nn.Sequential(
-            nn.Linear(2, 32),
+            nn.Linear(3, 32),
             nn.ReLU(True),
             nn.Linear(32, 64),
             nn.ReLU(True),
@@ -43,11 +42,15 @@ class VAE(nn.Module):
     def decode(self, z):
         return self.decoder(z)
 
-    def forward(self, x):
-        # 必须取logvar，如果取sigma的话klloss中取 log 后可能出现nan
+    # x shape: (batch_size, 1, 28, 28)
+    # label shape: (batch_size, )
+    def forward(self, x, label):
+        x = torch.cat([torch.flatten(x, start_dim=1), torch.reshape(label, (-1, 1))], dim=1)
         latent_vector = self.encode(x)
+        # 必须取logvar，如果取sigma的话klloss中取 log 后可能出现nan
         mu, logvar = latent_vector.chunk(2, dim=1) 
-        z = self.reparameterize(mu, logvar)
+        z = self.reparameterize(mu, logvar) # z shape: (batch_size, 2)
+        z = torch.cat([z, torch.reshape(label, (-1, 1))], dim=1)
         gen_img = self.decode(z)
         return gen_img, mu, logvar
 
